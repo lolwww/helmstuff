@@ -1,0 +1,72 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  # "namespace" omitted since ClusterRoles are not namespaced
+  name: juju-cluster-admin
+rules:
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: $POD_NAME
+  namespace: $NAMESPACE
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: role-bind-$POD_NAME
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: $POD_NAME-cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: $POD_NAME
+    namespace: $NAMESPACE
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: $POD_NAME-secret
+  namespace: $NAMESPACE
+  annotations:
+    kubernetes.io/service-account.name: $POD_NAME
+type: kubernetes.io/service-account-token
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: $POD_NAME-pvc
+  namespace: $NAMESPACE
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+---
+kind: Pod
+apiVersion: v1
+metadata:
+  name: $POD_NAME
+  namespace: $NAMESPACE
+spec:
+  serviceAccountName: $POD_NAME
+  volumes:
+    - name: $POD_NAME-vol
+      persistentVolumeClaim:
+        claimName: $POD_NAME-pvc
+  containers:
+    - name: ubuntu
+      image: ubuntu:22.04
+      command: ["/bin/sleep", "3650d"]
+      # WARN: Pod dies in 3650d. Thus, backup PVC
+      imagePullPolicy: IfNotPresent
+      volumeMounts:
+        - mountPath: "/root"
+          name: $POD_NAME-vol
+  restartPolicy: Always

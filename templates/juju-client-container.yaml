@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "juju-client.fullname" . }}
+  labels:
+    {{- include "juju-client.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "juju-client.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "juju-client.labels" . | nindent 8 }}
+    spec:
+      containers:
+      - name: main
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command: {{ toJson .Values.command }}
+        lifecycle:
+          postStart:
+            exec:
+              command:
+                - "/bin/sh"
+                - "-c"
+                - |
+                  apt update && \
+                  apt install -y wget xz-utils && \
+                  wget -qO- https://launchpad.net/juju/3.4/3.4.6/+download/juju-3.4.6-k8s-amd64.tar.xz | tar -xJf - -O ./juju > /usr/local/sbin/juju && \
+                  wget -qO- https://dl.k8s.io/release/v1.29.0/bin/linux/amd64/kubectl -O /usr/local/sbin/kubectl && \
+                  chmod +x /usr/local/sbin/juju /usr/local/sbin/kubectl
+        resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+      nodeSelector:
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
+      tolerations:
+        {{- toYaml .Values.tolerations | nindent 8 }}
+      affinity:
+        {{- toYaml .Values.affinity | nindent 8 }}

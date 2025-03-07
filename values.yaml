@@ -1,0 +1,11 @@
+# values.yaml
+image:
+  repository: ubuntu
+  tag: latest
+  pullPolicy: IfNotPresent
+
+command:
+  - "sleep"
+  - "infinity"  
+
+resources: {}
