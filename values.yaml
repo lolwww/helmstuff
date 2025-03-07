@@ -6,6 +6,9 @@ image:
 
 command:
   - "sleep"
-  - "infinity"  
+  - "infinity"  # Keeps the container running forever
 
 resources: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
